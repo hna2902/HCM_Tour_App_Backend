@@ -24,6 +24,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'Mật khẩu phải có ít nhất 6 ký tự.' });
     }
 
+    // --- THÊM MỚI: Validation định dạng số điện thoại ---
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ msg: 'Định dạng số điện thoại không hợp lệ.' });
+    }
+    // --- KẾT THÚC PHẦN THÊM MỚI ---
+
     // --- 2. Kiểm tra xem SĐT đã tồn tại chưa ---
     const existingUser = await User.findOne({ phone: phone });
     if (existingUser) {
@@ -31,8 +38,8 @@ router.post('/register', async (req, res) => {
     }
 
     // --- 3. Mã hóa mật khẩu (rất quan trọng) ---
-    const salt = await bcrypt.genSalt(10); // Tạo một "muối" ngẫu nhiên
-    const hashedPassword = await bcrypt.hash(password, salt); // Băm mật khẩu với muối
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // --- 4. Tạo người dùng mới và lưu vào database ---
     const newUser = new User({
@@ -53,7 +60,6 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (err) {
-    // Bắt các lỗi không lường trước được
     res.status(500).json({ error: err.message });
   }
 });
@@ -75,7 +81,6 @@ router.post('/login', async (req, res) => {
     // --- 2. Tìm người dùng trong database bằng SĐT ---
     const user = await User.findOne({ phone: phone });
     if (!user) {
-      // Lưu ý: Thông báo lỗi chung chung để tăng bảo mật
       return res.status(400).json({ msg: 'Số điện thoại hoặc mật khẩu không đúng.' });
     }
 
@@ -87,13 +92,13 @@ router.post('/login', async (req, res) => {
 
     // --- 4. Nếu đăng nhập thành công, tạo JSON Web Token (JWT) ---
     const payload = {
-      id: user.id, // Đưa ID của user vào trong token
+      id: user.id,
     };
 
     const token = jwt.sign(
       payload,
-      process.env.JWT_SECRET, // Lấy key bí mật từ file .env
-      { expiresIn: '1d' } // Token sẽ hết hạn sau 1 ngày
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
     );
 
     // --- 5. Trả về token và thông tin người dùng (không bao gồm mật khẩu) ---
